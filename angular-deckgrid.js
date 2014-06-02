@@ -195,7 +195,16 @@ angular.module('akoenig.deckgrid').factory('Deckgrid', [
             //
             // Register model change.
             //
-            watcher = this.$$scope.$watch('model', this.$$onModelChange.bind(this), true);
+            var watchExpression = function () {
+                var i = 0;
+                var simplifiedExpr = scope.model.filter(function (e) { return e.id !== undefined; }).map(function (e) { i++; return e.id; }).join('|');
+
+                if (i === scope.model.length) {
+                    return simplifiedExpr;
+                }
+                return scope.model;
+            };
+            watcher = self.$$scope.$watch(watchExpression, self.$$onModelChange.bind(self), true);
             this.$$watchers.push(watcher);
 
             //
@@ -299,10 +308,8 @@ angular.module('akoenig.deckgrid').factory('Deckgrid', [
 
             if (!this.$$scope.layout) {
                 return $log.error('angular-deckgrid: No CSS configuration found (see ' +
-                                   'https://github.com/akoenig/angular-deckgrid#the-grid-configuration)');
+                    'https://github.com/akoenig/angular-deckgrid#the-grid-configuration)');
             }
-
-            this.$$scope.columns = [];
 
             angular.forEach(this.$$scope.model, function onIteration (card, index) {
                 var column = (index % self.$$scope.layout.columns) | 0;
@@ -311,8 +318,14 @@ angular.module('akoenig.deckgrid').factory('Deckgrid', [
                     self.$$scope.columns[column] = [];
                 }
 
-                card.$index = index;
-                self.$$scope.columns[column].push(card);
+                var isCardAvailable = false;
+                angular.forEach(self.$$scope.columns[column], function(existingCard, cardInColumnIndex) {
+                    isCardAvailable = isCardAvailable || angular.equals(existingCard, card);
+                });
+
+                if (!isCardAvailable) {
+                    self.$$scope.columns[column].push(card);
+                }
             });
         };
 
@@ -382,13 +395,21 @@ angular.module('akoenig.deckgrid').factory('Deckgrid', [
          *
          */
         Deckgrid.prototype.$$onModelChange = function $$onModelChange (newModel, oldModel) {
-            var self = this;
+            var self = this, i;
 
             newModel = newModel || [];
             oldModel = oldModel || [];
 
-            if (oldModel.length !== newModel.length) {
+            if (!angular.equals(oldModel, newModel)) {
                 self.$$createColumns();
+            } else {
+                i = newModel.length - 1;
+                for (i; i >= 0; i = i - 1) {
+                    if (oldModel[i] !== newModel[i]) {
+                        self.$$createColumns();
+                        break;
+                    }
+                }
             }
         };
 
