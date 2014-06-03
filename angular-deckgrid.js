@@ -195,7 +195,7 @@ angular.module('akoenig.deckgrid').factory('Deckgrid', [
             //
             // Register model change.
             //
-            var watchExpression = function () {
+            var watchExpression = scope.model ? function () {
                 var i = 0;
                 var simplifiedExpr = scope.model.filter(function (e) { return e.id !== undefined; }).map(function (e) { i++; return e.id; }).join('|');
 
@@ -203,7 +203,7 @@ angular.module('akoenig.deckgrid').factory('Deckgrid', [
                     return simplifiedExpr;
                 }
                 return scope.model;
-            };
+            } : 'model';
             watcher = self.$$scope.$watch(watchExpression, self.$$onModelChange.bind(self), true);
             this.$$watchers.push(watcher);
 
@@ -221,7 +221,7 @@ angular.module('akoenig.deckgrid').factory('Deckgrid', [
 
                 self.$$watchers.push(onDestroy);
             });
-            
+
             mql = $window.matchMedia('(orientation: portrait)');
             mql.addListener(self.$$onMediaQueryChange.bind(self));
 
